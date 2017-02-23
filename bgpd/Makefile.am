@@ -1,10 +1,11 @@
 ## Process this file with automake to produce Makefile.in.
 
-AM_CPPFLAGS = -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib
-DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\"
+AM_CPPFLAGS = -I.. -I$(top_srcdir) -I$(top_srcdir)/lib -I$(top_builddir)/lib -I/users/kyehwanl/Programming/time-measure/tm-library/tm_rdtsc
+DEFS = @DEFS@ -DSYSCONFDIR=\"$(sysconfdir)/\" -D__TIME_MEASURE__
 INSTALL_SDATA=@INSTALL@ -m 600
 
 AM_CFLAGS = $(WERROR)
+AM_LDFLAGS = -L/users/kyehwanl/Programming/time-measure/tm-library/tm_rdtsc -ltm_rdtsc -Wl,-rpath -Wl,/users/kyehwanl/Programming/time-measure/tm-library/tm_rdtsc/.libs
 
 noinst_LIBRARIES = libbgp.a
 sbin_PROGRAMS = bgpd

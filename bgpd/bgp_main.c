@@ -51,9 +51,12 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 #include "bgpd/bgp_debug.h"
 #include "bgpd/bgp_filter.h"
 #include "bgpd/bgp_zebra.h"
+#if defined (__TIME_MEASURE__)
+#include "libtm_rdtsc.h"
+#endif /* __TIME_MEASURE__ */
 
 /* bgpd options, we use GNU getopt library. */
-static const struct option longopts[] = 
+static const struct option longopts[] =
 {
   { "daemon",      no_argument,       NULL, 'd'},
   { "config_file", required_argument, NULL, 'f'},
@@ -81,10 +84,10 @@ void sigusr1 (void);
 
 static void bgp_exit (int);
 
-static struct quagga_signal_t bgp_signals[] = 
+static struct quagga_signal_t bgp_signals[] =
 {
-  { 
-    .signal = SIGHUP, 
+  {
+    .signal = SIGHUP,
     .handler = &sighup,
   },
   {
@@ -117,10 +120,14 @@ static const char *pid_file = PATH_BGPD_PID;
 int vty_port = BGP_VTY_PORT;
 char *vty_addr = NULL;
 
+#if defined (__TIME_MEASURE__)
+//extern unsigned int g_measureCount=0;
+#endif /* __TIME_MEASURE__ */
+
 /* privileges */
-static zebra_capabilities_t _caps_p [] =  
+static zebra_capabilities_t _caps_p [] =
 {
-    ZCAP_BIND, 
+    ZCAP_BIND,
     ZCAP_NET_RAW,
     ZCAP_NET_ADMIN,
 };
@@ -146,7 +153,7 @@ usage (char *progname, int status)
   if (status != 0)
     fprintf (stderr, "Try `%s --help' for more information.\n", progname);
   else
-    {    
+    {
       printf ("Usage : %s [OPTION...]\n\n\
 Daemon which manages kernel routing table management and \
 redistribution between different routing protocols.\n\n\
@@ -165,6 +172,7 @@ redistribution between different routing protocols.\n\n\
 -S, --skip_runas   Skip user and group run as\n\
 -v, --version      Print program version\n\
 -C, --dryrun       Check configuration for validity and exit\n\
+-c,                Time Measuring count\n\
 -h, --help         Display this help and exit\n\
 \n\
 Report bugs to %s\n", progname, ZEBRA_BUG_ADDRESS);
@@ -174,7 +182,7 @@ Report bugs to %s\n", progname, ZEBRA_BUG_ADDRESS);
 }
 
 /* SIGHUP handler. */
-void 
+void
 sighup (void)
 {
   zlog (NULL, LOG_INFO, "SIGHUP received");
@@ -199,7 +207,7 @@ sigint (void)
 {
   zlog_notice ("Terminating on signal");
 
-  if (! retain_mode) 
+  if (! retain_mode)
     {
       bgp_terminate ();
       if (bgpd_privs.user)      /* NULL if skip_runas flag set */
@@ -239,7 +247,7 @@ bgp_exit (int status)
     bgp_delete (bgp);
   list_free (bm->bgp);
   bm->bgp = NULL;
-  
+
   /*
    * bgp_delete can re-allocate the process queues after they were
    * deleted in bgp_terminate. delete them again.
@@ -258,7 +266,7 @@ bgp_exit (int status)
       work_queue_free (bm->process_rsclient_queue);
       bm->process_rsclient_queue = NULL;
     }
-  
+
   /* reverse bgp_master_init */
   for (ALL_LIST_ELEMENTS_RO(bm->listen_sockets, node, socket))
     {
@@ -361,16 +369,23 @@ main (int argc, char **argv)
 
   /* BGP master init. */
   bgp_master_init ();
+#if defined (__TIME_MEASURE__)
+  tm_rdtsc_init(); // initialize time measure library
+#endif /* __TIME_MEASURE__ */
 
   /* Command line argument treatment. */
-  while (1) 
+  while (1)
     {
+#if defined (__TIME_MEASURE__)
+      opt = getopt_long (argc, argv, "df:i:z:hp:l:A:P:rnu:g:vCc:S", longopts, 0);
+#else
       opt = getopt_long (argc, argv, "df:i:z:hp:l:A:P:rnu:g:vCS", longopts, 0);
-    
+#endif /* __TIME_MEASURE__ */
+
       if (opt == EOF)
 	break;
 
-      switch (opt) 
+      switch (opt)
 	{
 	case 0:
 	  break;
@@ -399,11 +414,11 @@ main (int argc, char **argv)
 	case 'P':
           /* Deal with atoi() returning 0 on failure, and bgpd not
              listening on bgp port... */
-          if (strcmp(optarg, "0") == 0) 
+          if (strcmp(optarg, "0") == 0)
             {
               vty_port = 0;
               break;
-            } 
+            }
           vty_port = atoi (optarg);
 	  if (vty_port <= 0 || vty_port > 0xffff)
 	    vty_port = BGP_VTY_PORT;
@@ -433,6 +448,13 @@ main (int argc, char **argv)
 	case 'C':
 	  dryrun = 1;
 	  break;
+#if defined (__TIME_MEASURE__)
+        case 'c':
+          g_measureCount =0;
+          g_measureCount = atoi(optarg);
+          printf("[%s] Time Measuring Count: %ld\n", __FUNCTION__, g_measureCount);
+          break;
+#endif /* __TIME_MEASURE__ */
 	case 'h':
 	  usage (progname, 0);
 	  break;
@@ -462,7 +484,7 @@ main (int argc, char **argv)
   /* Start execution only if not in dry-run mode */
   if(dryrun)
     return(0);
-  
+
   /* Turn into daemon if daemon_mode is set. */
   if (daemon_mode && daemon (0, 0) < 0)
     {
@@ -479,7 +501,7 @@ main (int argc, char **argv)
 
   /* Print banner. */
   zlog_notice ("BGPd %s starting: vty@%d, bgp@%s:%d pid %d", QUAGGA_VERSION,
-	       vty_port, 
+	       vty_port,
 	       (bm->address ? bm->address : "<all>"),
 	       bm->port,
 	       getpid ());
