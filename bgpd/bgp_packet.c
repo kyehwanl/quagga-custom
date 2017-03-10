@@ -280,7 +280,37 @@ bgp_update_packet (struct peer *peer, afi_t afi, safi_t safi)
       adj->attr = bgp_attr_intern (adv->baa->attr);
 
       adv = bgp_advertise_clean (peer, adj, afi, safi);
+
+      /* BGP_UPDATE fragmentation */
+      size_t cp = stream_get_getp(s);
+      stream_set_getp (s, BGP_MARKER_SIZE + 2);
+      u_char type = stream_getc (s);
+      stream_set_getp(s, cp); // rewind
+
+      if (type == BGP_MSG_UPDATE)
+      {
+        if (!stream_empty(snlri))
+        {
+          bgp_packet_mpattr_end(snlri, mpattrlen_pos);
+          total_attr_len += stream_get_endp(snlri);
+        }
+
+        /* set the total attribute length correctly */
+        stream_putw_at (s, attrlen_pos, total_attr_len);
+
+        if (!stream_empty(snlri))
+          packet = stream_dupcat(s, snlri, mpattr_pos);
+        else
+          packet = stream_dup (s);
+        bgp_packet_set_size (packet);
+        bgp_packet_add (peer, packet);
+        BGP_WRITE_ON (peer->t_write, bgp_write, peer->fd);
+        stream_reset (s);
+        stream_reset (snlri);
+        return packet;
+      }
     }
+
 
   if (! stream_empty (s))
     {
