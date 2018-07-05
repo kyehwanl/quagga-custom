@@ -2678,6 +2678,7 @@ bgp_read (struct thread *thread)
 #if defined (__TIME_MEASURE__)
   //unsigned int g_measureCount;
   static unsigned long tCount=0;
+  static unsigned int used = false;
 #endif /* __TIME_MEASURE__ */
 
   /* Read rest of the packet and call each sort of packet routine */
@@ -2689,21 +2690,25 @@ bgp_read (struct thread *thread)
       break;
     case BGP_MSG_UPDATE:
 #if defined (__TIME_MEASURE__)
+      tCount = mtype_stats_alloc (MTYPE_BGP_ROUTE);
       if(tCount==0)
       {
         printf("[%s] Start Receiving Upto %ld Counts...\n", __FUNCTION__, g_measureCount);
         start_clock = rdtsc();
+        used = false;
       }
 #endif /* __TIME_MEASURE__ */
       peer->readtime = bgp_recent_clock ();
       bgp_update_receive (peer, size);
 #if defined (__TIME_MEASURE__)
-      tCount++;
-      if(tCount >= g_measureCount && g_measureCount != 0)
+      //printf(" -------- Route count: %d\n", mtype_stats_alloc (MTYPE_BGP_ROUTE));
+      tCount = mtype_stats_alloc (MTYPE_BGP_ROUTE);
+
+      if(tCount >= g_measureCount && g_measureCount != 0 && used == false)
       {
         end_clock = rdtsc();
         print_clock_time(end_clock, start_clock, "receive test");
-        tCount=0;
+        used = true;
       }
 #endif /* __TIME_MEASURE__ */
       break;
