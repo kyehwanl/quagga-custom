@@ -41,10 +41,10 @@ struct bgp_master
   /* work queues */
   struct work_queue *process_main_queue;
   struct work_queue *process_rsclient_queue;
-  
+
   /* Listening sockets */
   struct list *listen_sockets;
-  
+
   /* BGP port number.  */
   u_int16_t port;
 
@@ -63,14 +63,14 @@ struct bgp_master
 };
 
 /* BGP instance structure.  */
-struct bgp 
+struct bgp
 {
   /* AS number of this BGP instance.  */
   as_t as;
 
   /* Name of this BGP instance.  */
   char *name;
-  
+
   /* Reference count to allow peer_delete to finish after bgp_delete */
   int lock;
 
@@ -162,7 +162,7 @@ struct bgp
   u_char ipv6_distance_ebgp;
   u_char ipv6_distance_ibgp;
   u_char ipv6_distance_local;
-  
+
   /* BGP default local-preference.  */
   u_int32_t default_local_pref;
 
@@ -189,7 +189,7 @@ struct peer_group
 
   /* Pointer to BGP.  */
   struct bgp *bgp;
-  
+
   /* Peer-group client list. */
   struct list *peer;
 
@@ -198,7 +198,7 @@ struct peer_group
 };
 
 /* BGP Notify message format. */
-struct bgp_notify 
+struct bgp_notify
 {
   u_char code;
   u_char subcode;
@@ -233,7 +233,7 @@ struct bgp_rd
 struct bgp_filter
 {
   /* Distribute-list.  */
-  struct 
+  struct
   {
     char *name;
     struct access_list *alist;
@@ -298,7 +298,7 @@ struct peer
   u_char af_group[AFI_MAX][SAFI_MAX];
 
   /* Peer's remote AS number. */
-  as_t as;			
+  as_t as;
 
   /* Peer's local AS number. */
   as_t local_as;
@@ -347,7 +347,9 @@ struct peer
   time_t uptime;		/* Last Up/Down time */
   time_t readtime;		/* Last read time */
   time_t resettime;		/* Last reset time */
-  
+  time_t firstupdatetime;
+  time_t lastupdatetime;
+
   ifindex_t ifindex;		/* ifindex of the BGP connection. */
   char *ifname;			/* bind interface name. */
   char *update_if;
@@ -463,6 +465,7 @@ struct peer
 #define PEER_CONFIG_TIMER             (1 << 1) /* keepalive & holdtime */
 #define PEER_CONFIG_CONNECT           (1 << 2) /* connect */
 #define PEER_CONFIG_ROUTEADV          (1 << 3) /* route advertise */
+#define PEER_USER_DEFINED_TIMER       (1 << 4) /* user defined flag */
   u_int32_t weight;
   u_int32_t holdtime;
   u_int32_t keepalive;
@@ -477,6 +480,7 @@ struct peer
   u_int32_t v_routeadv;
   u_int32_t v_pmax_restart;
   u_int32_t v_gr_restart;
+  u_int32_t v_user_defined;
 
   /* Threads. */
   struct thread *t_read;
@@ -489,10 +493,11 @@ struct peer
   struct thread *t_pmax_restart;
   struct thread *t_gr_restart;
   struct thread *t_gr_stale;
-  
+  struct thread *t_user_defined;
+
   /* workqueues */
   struct work_queue *clear_node_queue;
-  
+
   /* Statistics field */
   u_int32_t open_in;		/* Open message input count */
   u_int32_t open_out;		/* Open message output count */
@@ -755,10 +760,11 @@ struct bgp_nlri
 /* BGP timers default value.  */
 #define BGP_INIT_START_TIMER                     1
 #define BGP_DEFAULT_HOLDTIME                   180
-#define BGP_DEFAULT_KEEPALIVE                   60 
+#define BGP_DEFAULT_KEEPALIVE                   60
 #define BGP_DEFAULT_EBGP_ROUTEADV                3
 #define BGP_DEFAULT_IBGP_ROUTEADV                1
 #define BGP_DEFAULT_CONNECT_RETRY                5
+#define BGP_DEFAULT_USER_DEFINED                10
 
 /* BGP default local preference.  */
 #define BGP_DEFAULT_LOCAL_PREF                 100
@@ -843,7 +849,7 @@ extern void bgp_terminate (void);
 extern void bgp_reset (void);
 extern time_t bgp_clock (void);
 extern void bgp_zclient_reset (void);
-extern int bgp_nexthop_set (union sockunion *, union sockunion *, 
+extern int bgp_nexthop_set (union sockunion *, union sockunion *,
 		     struct bgp_nexthop *, struct peer *);
 extern struct bgp *bgp_get_default (void);
 extern struct bgp *bgp_lookup (as_t, const char *);
