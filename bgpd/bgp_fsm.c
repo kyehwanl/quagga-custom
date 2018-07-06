@@ -187,8 +187,12 @@ bgp_timer_set (struct peer *peer)
       BGP_TIMER_OFF (peer->t_start);
       BGP_TIMER_OFF (peer->t_connect);
 
-	  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer,
-			peer->v_user_defined);
+      if (CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER))
+      {
+        BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer,
+            peer->v_user_defined);
+      }
+
       /* Same as OpenConfirm, if holdtime is zero then both holdtime
          and keepalive must be turned off. */
       if (peer->v_holdtime == 0)
@@ -215,6 +219,13 @@ bgp_timer_set (struct peer *peer)
       BGP_TIMER_OFF (peer->t_keepalive);
       BGP_TIMER_OFF (peer->t_routeadv);
       BGP_TIMER_OFF (peer->t_user_defined);
+      if (CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER))
+      {
+        peer->firstupdatetime = 0;
+        //UNSET_FLAG(peer->config, PEER_USER_DEFINED_TIMER);
+        UNSET_FLAG(peer->config, PEER_USER_DEFINED_TIMER_USED);
+      }
+
     }
 }
 
@@ -320,14 +331,12 @@ bgp_user_defined_timer (struct thread *thread)
         peer->as, peer->update_in, mtype_stats_alloc (MTYPE_BGP_ROUTE),
         bgp_clock(), peer->lastupdatetime - peer->firstupdatetime);
     //printf("+++ Last read %s\n", peer_uptime (peer->uptime, timebuf, BGP_UPTIME_LEN));
-    //printf("+++ Route count: %d\n", mtype_stats_alloc (MTYPE_BGP_ROUTE));
     //THREAD_VAL (thread) = KeepAlive_timer_expired;
     //bgp_event (thread); /* bgp_event unlocks peer */
   }
 
   //bgp_timer_set (peer);
-  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer, BGP_DEFAULT_USER_DEFINED
-      /*peer->v_user_defined*/);
+  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer, peer->v_user_defined);
   return 0;
 }
 
@@ -621,10 +630,12 @@ bgp_stop (struct peer *peer)
 
 
 
-  if (CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER))
+  if (!CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER))
   {
+    //printf("************ peer:%d STOP and CLEARED ******************\n", peer->as);
     peer->firstupdatetime = 0;
     UNSET_FLAG(peer->config, PEER_USER_DEFINED_TIMER);
+    UNSET_FLAG(peer->config, PEER_USER_DEFINED_TIMER_USED);
   }
 
   /* Until we are sure that there is no problem about prefix count

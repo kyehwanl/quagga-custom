@@ -465,7 +465,8 @@ struct peer
 #define PEER_CONFIG_TIMER             (1 << 1) /* keepalive & holdtime */
 #define PEER_CONFIG_CONNECT           (1 << 2) /* connect */
 #define PEER_CONFIG_ROUTEADV          (1 << 3) /* route advertise */
-#define PEER_USER_DEFINED_TIMER       (1 << 4) /* user defined flag */
+#define PEER_USER_DEFINED_TIMER       (1 << 4) /* user defined timer */
+#define PEER_USER_DEFINED_TIMER_USED  (1 << 5) /* user defined timer internal use flag */
   u_int32_t weight;
   u_int32_t holdtime;
   u_int32_t keepalive;
@@ -967,6 +968,10 @@ extern int peer_timers_connect_unset (struct peer *);
 
 extern int peer_advertise_interval_set (struct peer *, u_int32_t);
 extern int peer_advertise_interval_unset (struct peer *);
+
+extern int peer_user_defined_interval_set (struct peer *, u_int32_t);
+extern int peer_user_defined_interval_unset (struct peer *);
+extern int peer_user_defined_interval_reset (struct peer *);
 
 extern int peer_interface_set (struct peer *, const char *);
 extern int peer_interface_unset (struct peer *);

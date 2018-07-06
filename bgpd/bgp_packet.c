@@ -2692,24 +2692,18 @@ bgp_read (struct thread *thread)
 
 #if defined (__TIME_MEASURE__)
       tCount = mtype_stats_alloc (MTYPE_BGP_ROUTE);
-      if (!CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER) && tCount > 0)
+      if (!CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER_USED) && tCount > 0)
       {
-        printf("+++ peer(%d) first bgp_clock time: %ld\n", peer->as, bgp_recent_clock() );
+        zlog_debug ("+++ peer(%d) first timer clock set: %ld", peer->as, bgp_recent_clock() );
         peer->firstupdatetime = bgp_recent_clock();
-        SET_FLAG(peer->config, PEER_USER_DEFINED_TIMER);
+        SET_FLAG(peer->config, PEER_USER_DEFINED_TIMER_USED);
       }
-
 #if 0
       printf("+++ bgp_clock time: %d\t", bgp_recent_clock() );
       printf("+++ Last read %s\n", peer_uptime (peer->uptime, timebuf, BGP_UPTIME_LEN));
       printf("+++ Route count: %d\n", tCount );
 #endif
 
-      //if(tCount >= g_measureCount && g_measureCount != 0 && used == false)
-      //if(used == false)
-      //{
-        //used = true;
-      //}
 #endif /* __TIME_MEASURE__ */
       break;
     case BGP_MSG_NOTIFY:
