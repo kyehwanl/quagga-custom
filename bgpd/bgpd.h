@@ -968,6 +968,10 @@ extern int peer_timers_connect_unset (struct peer *);
 extern int peer_advertise_interval_set (struct peer *, u_int32_t);
 extern int peer_advertise_interval_unset (struct peer *);
 
+extern int peer_user_defined_interval_set (struct peer *, u_int32_t);
+extern int peer_user_defined_interval_unset (struct peer *);
+extern int peer_user_defined_interval_reset (struct peer *);
+
 extern int peer_interface_set (struct peer *, const char *);
 extern int peer_interface_unset (struct peer *);
 

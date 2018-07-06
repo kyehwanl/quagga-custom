@@ -2694,7 +2694,7 @@ bgp_read (struct thread *thread)
       tCount = mtype_stats_alloc (MTYPE_BGP_ROUTE);
       if (!CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER) && tCount > 0)
       {
-        printf("+++ peer(%d) first bgp_clock time: %ld\n", peer->as, bgp_recent_clock() );
+        printf("+++ peer(%d) first timer clock set: %ld\n", peer->as, bgp_recent_clock() );
         peer->firstupdatetime = bgp_recent_clock();
         SET_FLAG(peer->config, PEER_USER_DEFINED_TIMER);
       }

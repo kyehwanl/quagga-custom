@@ -187,8 +187,12 @@ bgp_timer_set (struct peer *peer)
       BGP_TIMER_OFF (peer->t_start);
       BGP_TIMER_OFF (peer->t_connect);
 
-	  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer,
-			peer->v_user_defined);
+      if (CHECK_FLAG(peer->config, PEER_USER_DEFINED_TIMER))
+      {
+        BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer,
+            peer->v_user_defined);
+      }
+
       /* Same as OpenConfirm, if holdtime is zero then both holdtime
          and keepalive must be turned off. */
       if (peer->v_holdtime == 0)
@@ -326,8 +330,7 @@ bgp_user_defined_timer (struct thread *thread)
   }
 
   //bgp_timer_set (peer);
-  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer, BGP_DEFAULT_USER_DEFINED
-      /*peer->v_user_defined*/);
+  BGP_TIMER_ON (peer->t_user_defined, bgp_user_defined_timer, peer->v_user_defined);
   return 0;
 }
 

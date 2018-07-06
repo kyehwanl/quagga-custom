@@ -3479,6 +3479,7 @@ peer_advertise_interval_set (struct peer *peer, u_int32_t routeadv)
   return 0;
 }
 
+
 int
 peer_advertise_interval_unset (struct peer *peer)
 {
@@ -3514,6 +3515,93 @@ peer_advertise_interval_unset (struct peer *peer)
 
   return 0;
 }
+
+
+
+int peer_user_defined_interval_set (struct peer *peer, u_int32_t user_defined)
+{
+  struct peer_group *group;
+  struct listnode *node, *nnode;
+
+  if (peer_group_active (peer))
+    return BGP_ERR_INVALID_FOR_PEER_GROUP_MEMBER;
+
+  if (user_defined > 60)
+    return BGP_ERR_INVALID_VALUE;
+
+  SET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+  peer->v_user_defined = user_defined;
+
+  if (! CHECK_FLAG (peer->sflags, PEER_STATUS_GROUP))
+    return 0;
+
+  /* peer-group member updates. */
+  group = peer->group;
+  for (ALL_LIST_ELEMENTS (group->peer, node, nnode, peer))
+  {
+    SET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+    peer->v_user_defined = user_defined;
+  }
+
+  return 0;
+}
+
+/* count reset */
+int peer_user_defined_interval_reset (struct peer *peer)
+{
+  struct peer_group *group;
+  struct listnode *node, *nnode;
+
+  if (peer_group_active (peer))
+    return BGP_ERR_INVALID_FOR_PEER_GROUP_MEMBER;
+
+  UNSET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+  //peer->firstupdatetime = 0;
+
+  if (! CHECK_FLAG (peer->sflags, PEER_STATUS_GROUP))
+    return 0;
+
+  /* peer-group member updates. */
+  group = peer->group;
+  for (ALL_LIST_ELEMENTS (group->peer, node, nnode, peer))
+  {
+    UNSET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+    //peer->firstupdatetime = 0;
+  }
+
+  return 0;
+}
+
+/* get rid of timer */
+int peer_user_defined_interval_unset (struct peer *peer)
+{
+  struct peer_group *group;
+  struct listnode *node, *nnode;
+
+  if (peer_group_active (peer))
+    return BGP_ERR_INVALID_FOR_PEER_GROUP_MEMBER;
+
+
+  BGP_TIMER_OFF (peer->t_user_defined);
+  UNSET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+  //peer->firstupdatetime = 0;
+
+
+  if (! CHECK_FLAG (peer->sflags, PEER_STATUS_GROUP))
+    return 0;
+
+  /* peer-group member updates. */
+  group = peer->group;
+  for (ALL_LIST_ELEMENTS (group->peer, node, nnode, peer))
+  {
+    BGP_TIMER_OFF (peer->t_user_defined);
+    UNSET_FLAG (peer->config, PEER_USER_DEFINED_TIMER);
+    //peer->firstupdatetime = 0;
+  }
+
+  return 0;
+}
+
 
 /* neighbor interface */
 int
